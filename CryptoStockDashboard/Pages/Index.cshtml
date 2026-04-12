@@ -1,0 +1,248 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-currency-bitcoin me-1"></i>Top Crypto</div>
+            <div class="stat-value text-warning" id="statTopCrypto">
+                @if (Model.TopCrypto.Count > 0)
+                {
+                    @Model.TopCrypto[0].Symbol @: $@Model.TopCrypto[0].CurrentPrice.ToString("N2")
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-bar-chart me-1"></i>Top Stock</div>
+            <div class="stat-value text-info" id="statTopStock">
+                @if (Model.TopStocks.Count > 0)
+                {
+                    @Model.TopStocks[0].Symbol @: $@Model.TopStocks[0].Price.ToString("N2")
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-graph-up me-1"></i>Buy Signals</div>
+            <div class="stat-value text-success" id="statBuySignals">
+                @Model.TopPredictions.Count(p => p.Signal == "Buy")
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-clock-history me-1"></i>Last Updated</div>
+            <div class="stat-value text-secondary" style="font-size:1rem;" id="statLastUpdated">
+                <span class="live-dot"></span>@DateTime.UtcNow.ToString("HH:mm:ss") UTC
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Crypto Panel -->
+    <div class="col-lg-6">
+        <div class="dashboard-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-currency-bitcoin text-warning me-2"></i>Top Cryptocurrencies</h5>
+                <a asp-page="/Crypto" class="btn btn-outline-warning btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dashboard table-hover mb-0" id="cryptoTable">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">24h Change</th>
+                            <th class="text-end">Market Cap</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var crypto in Model.TopCrypto)
+                        {
+                            var changeClass = crypto.PriceChangePercent24h >= 0 ? "price-up" : "price-down";
+                            var changeIcon = crypto.PriceChangePercent24h >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(crypto.ImageUrl))
+                                    {
+                                        <img src="@crypto.ImageUrl" class="crypto-icon me-2" alt="@crypto.Symbol" />
+                                    }
+                                    <strong>@crypto.Symbol</strong>
+                                    <small class="text-muted ms-1">@crypto.Name</small>
+                                </td>
+                                <td class="text-end fw-semibold">$@crypto.CurrentPrice.ToString("N2")</td>
+                                <td class="text-end @changeClass">
+                                    <i class="bi @changeIcon"></i> @crypto.PriceChangePercent24h.ToString("N2")%
+                                </td>
+                                <td class="text-end text-muted">$@FormatLargeNumber(crypto.MarketCap)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stocks Panel -->
+    <div class="col-lg-6">
+        <div class="dashboard-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line text-info me-2"></i>S&P 500 Stocks</h5>
+                <a asp-page="/Stocks" class="btn btn-outline-info btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dashboard table-hover mb-0" id="stockTable">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Change</th>
+                            <th class="text-end">Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var stock in Model.TopStocks)
+                        {
+                            var changeClass = stock.Change >= 0 ? "price-up" : "price-down";
+                            var changeIcon = stock.Change >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                            <tr>
+                                <td>
+                                    <strong>@stock.Symbol</strong>
+                                    <small class="text-muted ms-1">@stock.Name</small>
+                                </td>
+                                <td class="text-end fw-semibold">$@stock.Price.ToString("N2")</td>
+                                <td class="text-end @changeClass">
+                                    <i class="bi @changeIcon"></i> @stock.ChangePercent.ToString("N2")%
+                                </td>
+                                <td class="text-end text-muted">@FormatLargeNumber(stock.Volume)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Predictions Panel -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="dashboard-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-robot text-purple me-2"></i>ML.NET Price Predictions (7-day Forecast)</h5>
+                <a asp-page="/Predictions" class="btn btn-outline-light btn-sm">View All</a>
+            </div>
+            <div class="row g-3" id="predictionsGrid">
+                @foreach (var pred in Model.TopPredictions)
+                {
+                    var signalClass = pred.Signal switch { "Buy" => "signal-buy", "Sell" => "signal-sell", _ => "signal-hold" };
+                    var priceClass = pred.PredictedChangePercent >= 0 ? "price-up" : "price-down";
+                    <div class="col-md-4 col-lg-2">
+                        <div class="dashboard-card text-center p-3">
+                            <div class="fw-bold">@pred.Symbol</div>
+                            <small class="text-muted">@pred.AssetType</small>
+                            <div class="my-2">
+                                <span class="badge @signalClass px-3 py-1">@pred.Signal</span>
+                            </div>
+                            <div class="@priceClass fw-semibold">
+                                @(pred.PredictedChangePercent >= 0 ? "+" : "")@pred.PredictedChangePercent.ToString("N2")%
+                            </div>
+                            <div class="mt-2">
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill bg-info" style="width: @((int)(pred.Confidence * 100))%"></div>
+                                </div>
+                                <small class="text-muted">@((pred.Confidence * 100).ToString("N0"))% confidence</small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overview Chart -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="dashboard-card">
+            <h5 class="mb-3"><i class="bi bi-graph-up text-success me-2"></i>Market Overview</h5>
+            <div class="chart-container">
+                <canvas id="overviewChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const predictions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopPredictions, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            if (predictions.length > 0 && typeof Chart !== 'undefined') {
+                const ctx = document.getElementById('overviewChart').getContext('2d');
+                const datasets = predictions.filter(p => p.historicalPrices && p.historicalPrices.length > 0).slice(0, 4).map((p, i) => {
+                    const colors = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff'];
+                    const allPrices = [...p.historicalPrices, ...p.predictedPrices];
+                    return {
+                        label: p.symbol,
+                        data: allPrices,
+                        borderColor: colors[i % colors.length],
+                        backgroundColor: colors[i % colors.length] + '20',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.4,
+                        segment: {
+                            borderDash: (ctx2) => ctx2.p0DataIndex >= p.historicalPrices.length - 1 ? [5, 5] : undefined
+                        }
+                    };
+                });
+
+                const maxLen = Math.max(...datasets.map(d => d.data.length));
+                const labels = Array.from({ length: maxLen }, (_, i) => i < maxLen - 7 ? `Day ${i + 1}` : `Forecast ${i - maxLen + 8}`);
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#8b949e' } }
+                        },
+                        scales: {
+                            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                            y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+@functions {
+    string FormatLargeNumber(decimal value)
+    {
+        return value switch
+        {
+            >= 1_000_000_000_000m => (value / 1_000_000_000_000m).ToString("N2") + "T",
+            >= 1_000_000_000m => (value / 1_000_000_000m).ToString("N2") + "B",
+            >= 1_000_000m => (value / 1_000_000m).ToString("N2") + "M",
+            >= 1_000m => (value / 1_000m).ToString("N2") + "K",
+            _ => value.ToString("N2")
+        };
+    }
+
+    string FormatLargeNumber(long value)
+    {
+        return FormatLargeNumber((decimal)value);
+    }
+}

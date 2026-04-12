@@ -1,0 +1,286 @@
+@page
+@model CryptoModel
+@{
+    ViewData["Title"] = "Cryptocurrency Market";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-currency-bitcoin text-warning me-2"></i>Cryptocurrency Market
+        <span class="live-dot ms-2"></span>
+        <small class="text-muted fs-6">Live</small>
+    </h3>
+</div>
+
+<!-- Market Stats -->
+<div class="row g-3 mb-4">
+    @{
+        var totalMarketCap = Model.CryptoAssets.Sum(c => c.MarketCap);
+        var totalVolume = Model.CryptoAssets.Sum(c => c.Volume24h);
+        var avgChange = Model.CryptoAssets.Count > 0 ? Model.CryptoAssets.Average(c => c.PriceChangePercent24h) : 0;
+        var gainers = Model.CryptoAssets.Count(c => c.PriceChangePercent24h > 0);
+    }
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Market Cap</div>
+            <div class="stat-value text-warning">$@FormatLargeNumber(totalMarketCap)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">24h Volume</div>
+            <div class="stat-value text-info">$@FormatLargeNumber(totalVolume)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Avg 24h Change</div>
+            <div class="stat-value @(avgChange >= 0 ? "price-up" : "price-down")">
+                @(avgChange >= 0 ? "+" : "")@avgChange.ToString("N2")%
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Gainers / Losers</div>
+            <div class="stat-value">
+                <span class="price-up">@gainers</span> / <span class="price-down">@(Model.CryptoAssets.Count - gainers)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crypto Table -->
+<div class="dashboard-card">
+    <div class="table-responsive">
+        <table class="table table-dashboard table-hover mb-0" id="fullCryptoTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Asset</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">24h Change</th>
+                    <th class="text-end">24h High</th>
+                    <th class="text-end">24h Low</th>
+                    <th class="text-end">24h Volume</th>
+                    <th class="text-end">Market Cap</th>
+                    <th class="text-end">RSI (14)</th>
+                    <th class="text-end">MACD</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ var rank = 0; }
+                @foreach (var crypto in Model.CryptoAssets)
+                {
+                    rank++;
+                    var changeClass = crypto.PriceChangePercent24h >= 0 ? "price-up" : "price-down";
+                    var changeIcon = crypto.PriceChangePercent24h >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                    <tr>
+                        <td class="text-muted">@rank</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(crypto.ImageUrl))
+                            {
+                                <img src="@crypto.ImageUrl" class="crypto-icon me-2" alt="@crypto.Symbol" />
+                            }
+                            <strong>@crypto.Symbol</strong>
+                            <small class="text-muted ms-2">@crypto.Name</small>
+                        </td>
+                        <td class="text-end fw-semibold">$@crypto.CurrentPrice.ToString("N2")</td>
+                        <td class="text-end @changeClass">
+                            <i class="bi @changeIcon"></i> @crypto.PriceChangePercent24h.ToString("N2")%
+                        </td>
+                        <td class="text-end">$@crypto.High24h.ToString("N2")</td>
+                        <td class="text-end">$@crypto.Low24h.ToString("N2")</td>
+                        <td class="text-end text-muted">$@FormatLargeNumber(crypto.Volume24h)</td>
+                        <td class="text-end text-muted">$@FormatLargeNumber(crypto.MarketCap)</td>
+                        @if (crypto.Indicators is not null)
+                        {
+                            var rsi = crypto.Indicators.Rsi;
+                            var rsiClass = rsi > 70 ? "price-down" : rsi < 30 ? "price-up" : "text-muted";
+                            var macdHist = crypto.Indicators.MacdHistogram;
+                            var macdClass = macdHist >= 0 ? "price-up" : "price-down";
+                            <td class="text-end @rsiClass">@rsi.ToString("N1")</td>
+                            <td class="text-end @macdClass">
+                                @crypto.Indicators.MacdLine.ToString("N2") / @crypto.Indicators.SignalLine.ToString("N2")
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="text-end text-muted">&mdash;</td>
+                            <td class="text-end text-muted">&mdash;</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Price Chart -->
+<div class="dashboard-card mt-4">
+    <h5 class="mb-3"><i class="bi bi-graph-up text-warning me-2"></i>Price Comparison</h5>
+    <div class="chart-container">
+        <canvas id="cryptoChart"></canvas>
+    </div>
+</div>
+
+<!-- Technical Indicators Chart -->
+<div class="dashboard-card mt-4">
+    <h5 class="mb-3"><i class="bi bi-speedometer2 text-info me-2"></i>Technical Indicators (RSI &amp; MACD)</h5>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <canvas id="rsiChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <canvas id="macdChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const assets = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CryptoAssets, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            if (assets.length > 0 && typeof Chart !== 'undefined') {
+                const ctx = document.getElementById('cryptoChart').getContext('2d');
+                const colors = ['#f7931a', '#627eea', '#f3ba2f', '#00d4aa', '#346aa9', '#0033ad', '#c3a634', '#e6007a', '#e84142', '#2a5ada'];
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: assets.map(a => a.symbol),
+                        datasets: [{
+                            label: '24h Change %',
+                            data: assets.map(a => a.priceChangePercent24h),
+                            backgroundColor: assets.map((a, i) => a.priceChangePercent24h >= 0 ? '#3fb95080' : '#f8514980'),
+                            borderColor: assets.map(a => a.priceChangePercent24h >= 0 ? '#3fb950' : '#f85149'),
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#8b949e' } } },
+                        scales: {
+                            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                            y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', callback: v => v + '%' } }
+                        }
+                    }
+                });
+            }
+
+            // RSI Chart
+            const withIndicators = assets.filter(a => a.indicators);
+            if (withIndicators.length > 0 && typeof Chart !== 'undefined') {
+                const rsiCtx = document.getElementById('rsiChart').getContext('2d');
+                new Chart(rsiCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: withIndicators.map(a => a.symbol),
+                        datasets: [{
+                            label: 'RSI (14)',
+                            data: withIndicators.map(a => a.indicators.rsi),
+                            backgroundColor: withIndicators.map(a => {
+                                if (a.indicators.rsi > 70) return '#f8514980';
+                                if (a.indicators.rsi < 30) return '#3fb95080';
+                                return '#8b949e50';
+                            }),
+                            borderColor: withIndicators.map(a => {
+                                if (a.indicators.rsi > 70) return '#f85149';
+                                if (a.indicators.rsi < 30) return '#3fb950';
+                                return '#8b949e';
+                            }),
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#8b949e' } },
+                            annotation: {
+                                annotations: {
+                                    overbought: { type: 'line', yMin: 70, yMax: 70, borderColor: '#f85149', borderDash: [5, 5] },
+                                    oversold: { type: 'line', yMin: 30, yMax: 30, borderColor: '#3fb950', borderDash: [5, 5] }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                            y: { min: 0, max: 100, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                        }
+                    }
+                });
+
+                // MACD Chart
+                const macdCtx = document.getElementById('macdChart').getContext('2d');
+                new Chart(macdCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: withIndicators.map(a => a.symbol),
+                        datasets: [
+                            {
+                                label: 'MACD Line',
+                                data: withIndicators.map(a => a.indicators.macdLine),
+                                type: 'line',
+                                borderColor: '#58a6ff',
+                                backgroundColor: '#58a6ff40',
+                                tension: 0.3,
+                                pointRadius: 4,
+                                fill: false
+                            },
+                            {
+                                label: 'Signal Line',
+                                data: withIndicators.map(a => a.indicators.signalLine),
+                                type: 'line',
+                                borderColor: '#f0883e',
+                                backgroundColor: '#f0883e40',
+                                tension: 0.3,
+                                pointRadius: 4,
+                                fill: false
+                            },
+                            {
+                                label: 'Histogram',
+                                data: withIndicators.map(a => a.indicators.macdHistogram),
+                                backgroundColor: withIndicators.map(a =>
+                                    a.indicators.macdHistogram >= 0 ? '#3fb95080' : '#f8514980'),
+                                borderColor: withIndicators.map(a =>
+                                    a.indicators.macdHistogram >= 0 ? '#3fb950' : '#f85149'),
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#8b949e' } } },
+                        scales: {
+                            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                            y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+@functions {
+    string FormatLargeNumber(decimal value)
+    {
+        return value switch
+        {
+            >= 1_000_000_000_000m => (value / 1_000_000_000_000m).ToString("N2") + "T",
+            >= 1_000_000_000m => (value / 1_000_000_000m).ToString("N2") + "B",
+            >= 1_000_000m => (value / 1_000_000m).ToString("N2") + "M",
+            >= 1_000m => (value / 1_000m).ToString("N2") + "K",
+            _ => value.ToString("N2")
+        };
+    }
+}

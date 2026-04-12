@@ -1,0 +1,208 @@
+:root {
+    --dashboard-bg: #0d1117;
+    --card-bg: #161b22;
+    --card-border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --accent-green: #3fb950;
+    --accent-red: #f85149;
+    --accent-blue: #58a6ff;
+    --accent-yellow: #d29922;
+    --accent-purple: #bc8cff;
+}
+
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+body {
+    background-color: var(--dashboard-bg) !important;
+    color: var(--text-primary);
+    margin-bottom: 60px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Price indicators */
+.price-up {
+    color: var(--accent-green) !important;
+}
+
+.price-down {
+    color: var(--accent-red) !important;
+}
+
+.price-neutral {
+    color: var(--text-secondary) !important;
+}
+
+/* Signal badges */
+.signal-buy {
+    background-color: var(--accent-green);
+    color: #000;
+}
+
+.signal-sell {
+    background-color: var(--accent-red);
+    color: #fff;
+}
+
+.signal-hold {
+    background-color: var(--accent-yellow);
+    color: #000;
+}
+
+/* Stat cards */
+.stat-card {
+    background: linear-gradient(135deg, var(--card-bg) 0%, #1c2333 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table styles */
+.table-dashboard {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: rgba(48, 54, 61, 0.5);
+    color: var(--text-primary);
+}
+
+.table-dashboard th {
+    border-color: var(--card-border);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-dashboard td {
+    border-color: var(--card-border);
+    vertical-align: middle;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.chart-container-sm {
+    position: relative;
+    height: 200px;
+    width: 100%;
+}
+
+/* Live indicator */
+.live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent-green);
+    animation: pulse 2s infinite;
+    margin-right: 6px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Confidence bar */
+.confidence-bar {
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--card-border);
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dashboard-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--card-border);
+    border-radius: 4px;
+}
+
+/* Crypto image */
+.crypto-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+/* Loading shimmer */
+.shimmer {
+    background: linear-gradient(90deg, var(--card-bg) 25%, #1c2333 50%, var(--card-bg) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

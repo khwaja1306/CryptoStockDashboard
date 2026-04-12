@@ -1,0 +1,153 @@
+@page
+@model StocksModel
+@{
+    ViewData["Title"] = "S&P 500 Stocks";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-bar-chart-line text-info me-2"></i>S&amp;P 500 Stocks
+        <span class="live-dot ms-2"></span>
+        <small class="text-muted fs-6">Live</small>
+    </h3>
+</div>
+
+<!-- Market Stats -->
+<div class="row g-3 mb-4">
+    @{
+        var avgPrice = Model.Stocks.Count > 0 ? Model.Stocks.Average(s => s.Price) : 0;
+        var avgChange = Model.Stocks.Count > 0 ? Model.Stocks.Average(s => s.ChangePercent) : 0;
+        var totalVolume = Model.Stocks.Sum(s => s.Volume);
+        var gainers = Model.Stocks.Count(s => s.Change > 0);
+    }
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Avg Stock Price</div>
+            <div class="stat-value text-info">$@avgPrice.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Avg Change</div>
+            <div class="stat-value @(avgChange >= 0 ? "price-up" : "price-down")">
+                @(avgChange >= 0 ? "+" : "")@avgChange.ToString("N2")%
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Volume</div>
+            <div class="stat-value text-warning">@FormatLargeNumber(totalVolume)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Gainers / Losers</div>
+            <div class="stat-value">
+                <span class="price-up">@gainers</span> / <span class="price-down">@(Model.Stocks.Count - gainers)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stocks Table -->
+<div class="dashboard-card">
+    <div class="table-responsive">
+        <table class="table table-dashboard table-hover mb-0" id="fullStockTable">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Company</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Change</th>
+                    <th class="text-end">Change %</th>
+                    <th class="text-end">Open</th>
+                    <th class="text-end">High</th>
+                    <th class="text-end">Low</th>
+                    <th class="text-end">Prev Close</th>
+                    <th class="text-end">Volume</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stock in Model.Stocks)
+                {
+                    var changeClass = stock.Change >= 0 ? "price-up" : "price-down";
+                    var changeIcon = stock.Change >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                    var rowBg = stock.Change >= 0 ? "rgba(63,185,80,0.05)" : "rgba(248,81,73,0.05)";
+                    <tr style="background-color: @rowBg">
+                        <td><strong class="text-info">@stock.Symbol</strong></td>
+                        <td class="text-muted">@stock.Name</td>
+                        <td class="text-end fw-semibold">$@stock.Price.ToString("N2")</td>
+                        <td class="text-end @changeClass">
+                            <i class="bi @changeIcon"></i> $@Math.Abs(stock.Change).ToString("N2")
+                        </td>
+                        <td class="text-end @changeClass">
+                            @(stock.ChangePercent >= 0 ? "+" : "")@stock.ChangePercent.ToString("N2")%
+                        </td>
+                        <td class="text-end">$@stock.Open.ToString("N2")</td>
+                        <td class="text-end">$@stock.High.ToString("N2")</td>
+                        <td class="text-end">$@stock.Low.ToString("N2")</td>
+                        <td class="text-end">$@stock.PreviousClose.ToString("N2")</td>
+                        <td class="text-end text-muted">@FormatLargeNumber(stock.Volume)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Performance Chart -->
+<div class="dashboard-card mt-4">
+    <h5 class="mb-3"><i class="bi bi-bar-chart text-info me-2"></i>Daily Performance</h5>
+    <div class="chart-container">
+        <canvas id="stockChart"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const stocks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stocks, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            if (stocks.length > 0 && typeof Chart !== 'undefined') {
+                const ctx = document.getElementById('stockChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: stocks.map(s => s.symbol),
+                        datasets: [{
+                            label: 'Change %',
+                            data: stocks.map(s => s.changePercent),
+                            backgroundColor: stocks.map(s => s.changePercent >= 0 ? '#3fb95080' : '#f8514980'),
+                            borderColor: stocks.map(s => s.changePercent >= 0 ? '#3fb950' : '#f85149'),
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: { legend: { labels: { color: '#8b949e' } } },
+                        scales: {
+                            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', callback: v => v + '%' } },
+                            y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+@functions {
+    string FormatLargeNumber(long value)
+    {
+        return value switch
+        {
+            >= 1_000_000_000L => (value / 1_000_000_000.0).ToString("N2") + "B",
+            >= 1_000_000L => (value / 1_000_000.0).ToString("N2") + "M",
+            >= 1_000L => (value / 1_000.0).ToString("N2") + "K",
+            _ => value.ToString("N0")
+        };
+    }
+}

@@ -1,0 +1,245 @@
+@page
+@model PredictionsModel
+@{
+    ViewData["Title"] = "ML Predictions";
+    var allPredictions = Model.CryptoPredictions.Concat(Model.StockPredictions).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-robot text-purple me-2"></i>ML.NET Price Predictions
+        <small class="text-muted fs-6 ms-2">7-Day Forecast using Singular Spectrum Analysis</small>
+    </h3>
+</div>
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+    @{
+        var buyCount = allPredictions.Count(p => p.Signal == "Buy");
+        var sellCount = allPredictions.Count(p => p.Signal == "Sell");
+        var holdCount = allPredictions.Count(p => p.Signal == "Hold");
+        var avgConfidence = allPredictions.Count > 0 ? allPredictions.Average(p => p.Confidence) : 0;
+    }
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-arrow-up-circle me-1"></i>Buy Signals</div>
+            <div class="stat-value price-up">@buyCount</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-arrow-down-circle me-1"></i>Sell Signals</div>
+            <div class="stat-value price-down">@sellCount</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-dash-circle me-1"></i>Hold Signals</div>
+            <div class="stat-value text-warning">@holdCount</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-bullseye me-1"></i>Avg Confidence</div>
+            <div class="stat-value text-info">@((avgConfidence * 100).ToString("N1"))%</div>
+        </div>
+    </div>
+</div>
+
+<!-- Crypto Predictions -->
+<div class="dashboard-card mb-4">
+    <h5 class="mb-3"><i class="bi bi-currency-bitcoin text-warning me-2"></i>Cryptocurrency Predictions</h5>
+    <div class="row g-3">
+        @foreach (var pred in Model.CryptoPredictions)
+        {
+            var signalClass = pred.Signal switch { "Buy" => "signal-buy", "Sell" => "signal-sell", _ => "signal-hold" };
+            var priceClass = pred.PredictedChangePercent >= 0 ? "price-up" : "price-down";
+            var changeIcon = pred.PredictedChangePercent >= 0 ? "bi-arrow-up-right" : "bi-arrow-down-right";
+            <div class="col-md-4 col-lg">
+                <div class="dashboard-card h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="fw-bold mb-0">@pred.Symbol</h6>
+                            <small class="text-muted">@pred.AssetType</small>
+                        </div>
+                        <span class="badge @signalClass px-3 py-2 fs-6">@pred.Signal</span>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-muted small">Current</div>
+                        <div class="fs-5 fw-semibold">$@pred.CurrentPrice.ToString("N2")</div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-muted small">Predicted (7d)</div>
+                        <div class="fs-5 fw-semibold @priceClass">
+                            <i class="bi @changeIcon me-1"></i>$@pred.PredictedPrice.ToString("N2")
+                        </div>
+                        <small class="@priceClass">
+                            @(pred.PredictedChangePercent >= 0 ? "+" : "")@pred.PredictedChangePercent.ToString("N2")%
+                        </small>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Confidence</small>
+                            <small class="text-info">@((pred.Confidence * 100).ToString("N0"))%</small>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill @(pred.Confidence > 0.7 ? "bg-success" : pred.Confidence > 0.5 ? "bg-info" : "bg-warning")"
+                                 style="width: @((int)(pred.Confidence * 100))%"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="chart-container-sm">
+                            <canvas id="chart-@pred.Symbol.ToLower()"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Stock Predictions -->
+<div class="dashboard-card mb-4">
+    <h5 class="mb-3"><i class="bi bi-bar-chart-line text-info me-2"></i>S&amp;P 500 Stock Predictions</h5>
+    <div class="table-responsive">
+        <table class="table table-dashboard table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th class="text-end">Current Price</th>
+                    <th class="text-end">Predicted Price</th>
+                    <th class="text-end">Expected Change</th>
+                    <th class="text-center">Signal</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pred in Model.StockPredictions)
+                {
+                    var signalClass = pred.Signal switch { "Buy" => "signal-buy", "Sell" => "signal-sell", _ => "signal-hold" };
+                    var priceClass = pred.PredictedChangePercent >= 0 ? "price-up" : "price-down";
+                    <tr>
+                        <td><strong>@pred.Symbol</strong></td>
+                        <td class="text-end">$@pred.CurrentPrice.ToString("N2")</td>
+                        <td class="text-end fw-semibold @priceClass">$@pred.PredictedPrice.ToString("N2")</td>
+                        <td class="text-end @priceClass">
+                            @(pred.PredictedChangePercent >= 0 ? "+" : "")@pred.PredictedChangePercent.ToString("N2")%
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @signalClass px-3">@pred.Signal</span>
+                        </td>
+                        <td style="min-width: 150px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="confidence-bar flex-grow-1">
+                                    <div class="confidence-fill @(pred.Confidence > 0.7 ? "bg-success" : pred.Confidence > 0.5 ? "bg-info" : "bg-warning")"
+                                         style="width: @((int)(pred.Confidence * 100))%"></div>
+                                </div>
+                                <small class="text-muted">@((pred.Confidence * 100).ToString("N0"))%</small>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Forecast Chart -->
+<div class="dashboard-card">
+    <h5 class="mb-3"><i class="bi bi-graph-up text-success me-2"></i>Forecast Visualization</h5>
+    <div class="chart-container" style="height: 400px;">
+        <canvas id="forecastChart"></canvas>
+    </div>
+</div>
+
+<!-- Disclaimer -->
+<div class="alert alert-secondary mt-4 border-0" style="background-color: var(--card-bg);">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Disclaimer:</strong> These predictions are generated using ML.NET's Singular Spectrum Analysis (SSA) algorithm for educational purposes only.
+    They should not be used as financial advice. Always do your own research before making investment decisions.
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cryptoPredictions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CryptoPredictions, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            const stockPredictions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StockPredictions, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            const colors = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f85149'];
+
+            // Mini charts for crypto cards
+            cryptoPredictions.forEach((pred, i) => {
+                const canvas = document.getElementById('chart-' + pred.symbol.toLowerCase());
+                if (!canvas || !pred.historicalPrices || pred.historicalPrices.length === 0) return;
+
+                const allPrices = [...pred.historicalPrices, ...pred.predictedPrices];
+                const labels = allPrices.map((_, idx) => idx < pred.historicalPrices.length ? '' : 'F');
+
+                new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: allPrices,
+                            borderColor: colors[i % colors.length],
+                            backgroundColor: colors[i % colors.length] + '20',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.4,
+                            segment: {
+                                borderDash: (ctx) => ctx.p0DataIndex >= pred.historicalPrices.length - 1 ? [4, 4] : undefined
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { display: false },
+                            y: { display: false }
+                        }
+                    }
+                });
+            });
+
+            // Main forecast chart
+            const allPreds = [...cryptoPredictions, ...stockPredictions].filter(p => p.predictedPrices && p.predictedPrices.length > 0).slice(0, 6);
+            if (allPreds.length > 0) {
+                const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+                const datasets = allPreds.map((p, i) => ({
+                    label: p.symbol + ' (' + p.assetType + ')',
+                    data: [...p.historicalPrices, ...p.predictedPrices],
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    segment: {
+                        borderDash: (ctx) => ctx.p0DataIndex >= p.historicalPrices.length - 1 ? [6, 4] : undefined
+                    }
+                }));
+
+                const maxLen = Math.max(...datasets.map(d => d.data.length));
+                const labels = Array.from({ length: maxLen }, (_, i) => {
+                    const histLen = allPreds[0].historicalPrices.length;
+                    return i < histLen ? `Day ${i + 1}` : `Forecast +${i - histLen + 1}`;
+                });
+
+                new Chart(forecastCtx, {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#8b949e' } } },
+                        scales: {
+                            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxTicksLimit: 15 } },
+                            y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
