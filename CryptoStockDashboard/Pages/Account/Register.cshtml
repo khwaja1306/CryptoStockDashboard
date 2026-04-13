@@ -1,0 +1,46 @@
+@page
+@model CryptoStockDashboard.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card bg-dark border-secondary shadow">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-4">
+                    <i class="bi bi-person-plus text-success me-2"></i>Create Account
+                </h3>
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label"></label>
+                        <input asp-for="Input.Email" class="form-control" autocomplete="email" placeholder="name@example.com" />
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label"></label>
+                        <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    </div>
+                    <div class="mb-4">
+                        <label asp-for="Input.ConfirmPassword" class="form-label"></label>
+                        <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 mb-3">
+                        <i class="bi bi-person-check me-1"></i>Register
+                    </button>
+                    <div class="text-center">
+                        <span class="text-muted">Already have an account?</span>
+                        <a asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-success">Log in</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

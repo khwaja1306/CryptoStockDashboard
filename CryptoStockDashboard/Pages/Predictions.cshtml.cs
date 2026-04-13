@@ -1,9 +1,11 @@
 using CryptoStockDashboard.Models;
 using CryptoStockDashboard.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CryptoStockDashboard.Pages;
 
+[Authorize]
 public class PredictionsModel : PageModel
 {
     private readonly ICryptoService _cryptoService;
